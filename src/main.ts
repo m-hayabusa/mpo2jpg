@@ -41,7 +41,7 @@ class main {
         if (data[head] == 0xff && data[head + 1] == 0xd8)
             // SOI
             head += 2;
-        else return [new Blob([data])];
+        else return [new Blob([data.buffer])];
 
         console.log("APP1");
         if (data[head] == 0xff && data[head + 1] == 0xe1)
@@ -58,7 +58,7 @@ class main {
             if (data[head] == 0xff && data[head + 1] == 0xe2) {
                 // APP2
                 head += 2;
-            } else return [new Blob([data])];
+            } else return [new Blob([data.buffer])];
 
             app2Head = head;
             let app2Length = this.arrToNum(data, head, 2, false);
@@ -135,21 +135,28 @@ class main {
         if (this.fileSelector.files && this.fileSelector.files.length > 0) {
             const images = this.parseMPO(new Uint8Array(await this.fileSelector.files[0].arrayBuffer()));
 
-            console.log(window.URL.createObjectURL(images[0]));
-            console.log(window.URL.createObjectURL(images[1]));
+            // console.log(window.URL.createObjectURL(images[0]));
+            // console.log(window.URL.createObjectURL(images[1]));
 
             const img = await createImageBitmap(images[0]);
-            const width = img.width;
+            const width = images.length == 1 ? img.width / 2 : img.width;
+
             this.previewCanvas.canvas.width = width;
             this.previewCanvas.canvas.height = img.height;
 
-            this.previewCanvas.globalAlpha = 1.0;
-            this.previewCanvas.drawImage(img, 0, 0);
+            if (images.length == 1) {
+                this.previewCanvas.globalAlpha = 1.0;
+                this.previewCanvas.drawImage(img, 0, 0, width, img.height, 0, 0, width, img.height);
+                this.previewCanvas.globalAlpha = 0.5;
+                this.previewCanvas.drawImage(img, width, 0, width, img.height, 0, 0, width, img.height);
+            } else {
+                const img2 = await createImageBitmap(images[1]);
 
-            const img2 = await createImageBitmap(images[1]);
-            this.previewCanvas.globalAlpha = 0.5;
-            this.previewCanvas.drawImage(img2, 0, 0);
-            // this.previewCanvas.drawImage(img, width, 0, width, img.height, 0, 0, width, img.height);
+                this.previewCanvas.globalAlpha = 1.0;
+                this.previewCanvas.drawImage(img, 0, 0);
+                this.previewCanvas.globalAlpha = 0.5;
+                this.previewCanvas.drawImage(img2, 0, 0);
+            }
         }
     }
 }

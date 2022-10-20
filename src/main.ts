@@ -41,7 +41,7 @@ class main {
         if (data[head] == 0xff && data[head + 1] == 0xd8)
             // SOI
             head += 2;
-        else return [new Blob([data.buffer])];
+        else return [new Blob([data.buffer])]; // JPEGでない
 
         console.log("APP1");
         if (data[head] == 0xff && data[head + 1] == 0xe1)
@@ -58,7 +58,7 @@ class main {
             if (data[head] == 0xff && data[head + 1] == 0xe2) {
                 // APP2
                 head += 2;
-            } else return [new Blob([data.buffer])];
+            } else return [new Blob([data.buffer])]; // JPEGだがMPOでない
 
             app2Head = head;
             let app2Length = this.arrToNum(data, head, 2, false);
@@ -89,31 +89,43 @@ class main {
         let ifdOffset = this.arrToNum(data, head, 4, isLittleEndian);
         head += 4;
 
-        head = mpStart + ifdOffset;
-        head += 2;
+        head = mpStart + ifdOffset + 2;
 
+        // 0x00 0xB0 MPFバージョン
+        head += 2;
+        // 形式
+        head += 2;
+        // 個数
+        head += 4;
+        // 本体
         // let version = "";
-        head += 8;
         // for (let i = head; i < 4 + head; i++) {
         //     version += String.fromCharCode(data[i]);
         // }
         // console.log(version);
         head += 4;
 
-        head += 2; // 0x02 0xB0
+        // 0x01 0xB0 画像枚数
         head += 2;
+        // 形式
+        head += 2;
+        // 個数
         head += 4;
+        // 本体
         let count = this.arrToNum(data, head, 4, isLittleEndian);
         console.log(count);
         head += 4;
 
-        head += 2; // 0x03 0xB0
-        // console.log(this.arrToNum(data, head, 2, isLittleEndian));
+        // 0x02 0xB0 MPエントリ
+        head += 2;
+        // 形式
         head += 2;
         // console.log(this.arrToNum(data, head, 4, isLittleEndian));
+        // 個数
         head += 4;
+        // 本体: 4バイトを越えるのでオフセット
         let jump = this.arrToNum(data, head, 4, isLittleEndian);
-        head = mpStart + jump;
+        head = mpStart + jump; // MPエントリ本体へ
 
         let res = new Array<Blob>();
         for (let i = 0; i < count; i++) {
@@ -134,9 +146,6 @@ class main {
     async onFileChanged(e: Event) {
         if (this.fileSelector.files && this.fileSelector.files.length > 0) {
             const images = this.parseMPO(new Uint8Array(await this.fileSelector.files[0].arrayBuffer()));
-
-            // console.log(window.URL.createObjectURL(images[0]));
-            // console.log(window.URL.createObjectURL(images[1]));
 
             const img = await createImageBitmap(images[0]);
             const width = images.length == 1 ? img.width / 2 : img.width;
